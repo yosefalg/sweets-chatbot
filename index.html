@@ -1,26 +1,25 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متجر الحلويات الذكي | SweetBot</title>
+    <title>منصة الأنمي الذكي | AnimeAI</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <div class="logo">🍰</div>
-            <h2>حلويات الأنس</h2>
-            <p>مساعدك الشخصي لاختيار ألذ الحلويات</p>
+            <div class="logo">🎌</div>
+            <h2>AnimeAI</h2>
+            <p>مساعدك الذكي لعالم الأنمي - توصيات، تقييمات، وأخبار!</p>
         </div>
         <div class="chat-box" id="chat-box">
             <div class="message bot welcome">
-                <p>👋 أهلًا بك في متجر حلويات الأنس! أنا هنا لمساعدتك في اختيار الحلويات الطازجة، تقديم العروض، والإجابة عن أي سؤال يخص الحلويات. تفضل واسأل!</p>
+                <p>👋 <strong>أهلاً بك في عالم الأنمي!</strong> أنا هنا لمساعدتك في اكتشاف أفضل الأنميات، تقديم تقييمات، وإرشادك إلى روائع الأنمي الياباني. اسألني عن أي أنمي أو نوع مفضل!</p>
             </div>
         </div>
         <div class="chat-input">
-            <input type="text" id="user-input" placeholder="اكتب سؤالك هنا..." autocomplete="off">
+            <input type="text" id="user-input" placeholder="مثلاً: أنمي أكشن يستحق المشاهدة..." autocomplete="off">
             <button id="send-btn" title="إرسال">➤</button>
         </div>
     </div>
@@ -46,7 +45,6 @@
             appendMessage(message, 'user');
             userInput.value = '';
 
-            // مؤشر كتابة
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message bot typing';
             typingDiv.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
@@ -74,4 +72,4 @@
         });
     </script>
 </body>
-  </html>
+</html>

@@ -1,0 +1,77 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متجر الحلويات الذكي | SweetBot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="logo">🍰</div>
+            <h2>حلويات الأنس</h2>
+            <p>مساعدك الشخصي لاختيار ألذ الحلويات</p>
+        </div>
+        <div class="chat-box" id="chat-box">
+            <div class="message bot welcome">
+                <p>👋 أهلًا بك في متجر حلويات الأنس! أنا هنا لمساعدتك في اختيار الحلويات الطازجة، تقديم العروض، والإجابة عن أي سؤال يخص الحلويات. تفضل واسأل!</p>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="اكتب سؤالك هنا..." autocomplete="off">
+            <button id="send-btn" title="إرسال">➤</button>
+        </div>
+    </div>
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function appendMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            const p = document.createElement('p');
+            p.textContent = text;
+            msgDiv.appendChild(p);
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            userInput.value = '';
+
+            // مؤشر كتابة
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot typing';
+            typingDiv.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+            chatBox.appendChild(typingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                const data = await response.json();
+                chatBox.removeChild(typingDiv);
+                appendMessage(data.reply || '⚠️ عذراً، لم أستطع معالجة طلبك.', 'bot');
+            } catch (error) {
+                chatBox.removeChild(typingDiv);
+                appendMessage('❌ فشل الاتصال بالخادم. تأكد من تشغيل البرنامج الخلفي.', 'bot');
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+  </html>

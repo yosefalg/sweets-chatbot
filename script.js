@@ -4,6 +4,9 @@ let currentPage = 1;
 let isLoading = false;
 let animeData = {};
 
+// ========== مرجع VidLink ==========
+const VIDLINK_BASE = "https://vidlink.pro/anime";
+
 // ========== عناصر DOM ==========
 const animeGrid = document.getElementById('anime-grid');
 const searchInput = document.getElementById('search-input');
@@ -29,7 +32,6 @@ function animateStats() {
         const duration = 2000;
         const step = target / (duration / 16);
         let current = 0;
-        
         const updateCounter = () => {
             current += step;
             if (current < target) {
@@ -65,7 +67,6 @@ async function fetchAnime(type, page = 1) {
 // ========== عرض الأنميات ==========
 function renderAnimeCards(animeList, container) {
     container.innerHTML = '';
-    
     if (animeList.length === 0) {
         container.innerHTML = '<p style="text-align:center;grid-column:1/-1;padding:50px;">لم يتم العثور على أنميات</p>';
         return;
@@ -98,7 +99,6 @@ function renderAnimeCards(animeList, container) {
                 </div>
             </div>
         `;
-
         container.appendChild(card);
     });
 }
@@ -107,7 +107,6 @@ function renderAnimeCards(animeList, container) {
 async function loadAnimeList(tab = 'popular', page = 1, append = false) {
     if (isLoading) return;
     isLoading = true;
-
     if (!append) {
         animeGrid.innerHTML = `
             <div class="loading-spinner">
@@ -116,10 +115,8 @@ async function loadAnimeList(tab = 'popular', page = 1, append = false) {
             </div>
         `;
     }
-
     const animeList = await fetchAnime(tab, page);
     animeData[tab] = append ? [...(animeData[tab] || []), ...animeList] : animeList;
-    
     renderAnimeCards(animeData[tab], animeGrid);
     isLoading = false;
 }
@@ -127,7 +124,6 @@ async function loadAnimeList(tab = 'popular', page = 1, append = false) {
 // ========== البحث عن أنمي ==========
 async function searchAnime(query) {
     if (!query.trim()) return;
-    
     try {
         searchResultsContainer.style.display = 'block';
         searchResultsGrid.innerHTML = `
@@ -136,10 +132,8 @@ async function searchAnime(query) {
                 <p>جاري البحث...</p>
             </div>
         `;
-        
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         const data = await response.json();
-        
         if (data.results && data.results.length > 0) {
             renderAnimeCards(data.results, searchResultsGrid);
             searchResultsContainer.scrollIntoView({ behavior: 'smooth' });
@@ -147,20 +141,19 @@ async function searchAnime(query) {
             searchResultsGrid.innerHTML = '<p style="text-align:center;grid-column:1/-1;padding:50px;">لم يتم العثور على نتائج</p>';
         }
     } catch (error) {
-        console.error('Search error:', error);
         searchResultsGrid.innerHTML = '<p style="text-align:center;grid-column:1/-1;padding:50px;">حدث خطأ في البحث</p>';
     }
 }
 
-// ========== مشغل الفيديو ==========
-function openVideoPlayer(title, episodeNumber = 1) {
-    videoTitle.textContent = title;
+// ========== 🎬 مشغل الفيديو (VidLink API) ==========
+function openVideoPlayer(title, malId = 1, episodeNumber = 1) {
+    const subOrDub = 'sub'; // ترجمة افتراضياً، غيّر إلى 'dub' للدبلجة
+    const embedUrl = `${VIDLINK_BASE}/${malId}/${episodeNumber}/${subOrDub}?primaryColor=8a2be2&secondaryColor=1e1e3a&iconColor=ff69b4&icons=vid&title=true&autoplay=true`;
+
+    videoTitle.textContent = `${title} - الحلقة ${episodeNumber}`;
+    videoFrame.src = embedUrl;
     videoOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
-    
-    // محاولة تحميل الفيديو من Gogoanime
-    const searchQuery = encodeURIComponent(title);
-    videoFrame.src = `https://www2.gogoanime.fi/search?keyword=${searchQuery}`;
 }
 
 function closeVideoPlayer() {
@@ -174,29 +167,21 @@ serverTabs.forEach(tab => {
     tab.addEventListener('click', function() {
         serverTabs.forEach(t => t.classList.remove('active'));
         this.classList.add('active');
-        
+        const currentSrc = videoFrame.src;
         if (this.dataset.server === 'custom') {
             customUrlInput.style.display = 'flex';
-        } else {
+        } else if (this.dataset.server === 'vidlink') {
             customUrlInput.style.display = 'none';
-            const title = videoTitle.textContent;
-            const searchQuery = encodeURIComponent(title);
-            
-            if (this.dataset.server === 'gogo') {
-                videoFrame.src = `https://www2.gogoanime.fi/search?keyword=${searchQuery}`;
-            } else if (this.dataset.server === 'zoro') {
-                videoFrame.src = `https://zoro.to/search?keyword=${searchQuery}`;
-            }
+            // VidLink يبقى كما هو (الافتراضي)
         }
+        // يمكن إضافة مزودين آخرين هنا
     });
 });
 
 // ========== تحميل رابط مخصص ==========
 loadCustomUrl.addEventListener('click', () => {
     const url = customVideoUrl.value.trim();
-    if (url) {
-        videoFrame.src = url;
-    }
+    if (url) videoFrame.src = url;
 });
 
 // ========== أحداث ==========
@@ -204,17 +189,14 @@ searchBtn.addEventListener('click', () => searchAnime(searchInput.value));
 searchInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') searchAnime(searchInput.value);
 });
-
 closeVideo.addEventListener('click', closeVideoPlayer);
 videoOverlay.addEventListener('click', (e) => {
     if (e.target === videoOverlay) closeVideoPlayer();
 });
-
 loadMoreBtn.addEventListener('click', () => {
     currentPage++;
     loadAnimeList(currentTab, currentPage, true);
 });
-
 tabBtns.forEach(btn => {
     btn.addEventListener('click', function() {
         tabBtns.forEach(b => b.classList.remove('active'));
@@ -238,8 +220,6 @@ themeToggle.addEventListener('click', () => {
         localStorage.setItem('theme', 'dark');
     }
 });
-
-// تحميل الثيم المحفوظ
 if (localStorage.getItem('theme') === 'light') {
     document.body.classList.add('light-mode');
     themeToggle.querySelector('i').className = 'fas fa-sun';

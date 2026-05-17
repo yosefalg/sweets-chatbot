@@ -4,17 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">تفاصيل الأنمي - AnimeAI</title>
-    <link rel="stylesheet" href="style.css">
+    
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- GSAP + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <!-- Vanilla Tilt JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* تأثير الجسيمات */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            background: #8a2be2;
+            border-radius: 50%;
+            animation: float linear infinite;
+            opacity: 0;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.2; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+        .shimmer {
+            background: linear-gradient(90deg, #8a2be2, #ff69b4, #ff8c00, #ff69b4, #8a2be2);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
 </head>
-<body>
+<body class="cinematic">
+    <!-- حاوية الجسيمات -->
+    <div class="particles-container" id="particles-container"></div>
+
     <!-- شريط التنقل -->
-    <nav class="navbar">
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="nav-logo" onclick="window.location.href='/'">
                 <i class="fas fa-play-circle"></i>
-                <span>AnimeAI</span>
+                <span class="shimmer">AnimeAI</span>
             </div>
             <div class="nav-links">
                 <a href="/" class="nav-link"><i class="fas fa-home"></i> الرئيسية</a>
@@ -30,12 +79,13 @@
     <main class="anime-detail-container">
         <div class="anime-hero" id="anime-hero">
             <div class="anime-hero-bg" id="anime-hero-bg"></div>
+            <canvas id="hero-canvas"></canvas>
             <div class="anime-hero-content">
-                <div class="anime-poster">
+                <div class="anime-poster" id="anime-poster-container">
                     <img id="anime-poster" src="" alt="">
                 </div>
                 <div class="anime-info-detailed">
-                    <h1 id="anime-title-detailed"></h1>
+                    <h1 id="anime-title-detailed" class="shimmer"></h1>
                     <h3 id="anime-title-english"></h3>
                     <div class="anime-meta">
                         <span class="meta-item"><i class="fas fa-star"></i> <span id="anime-score"></span></span>
@@ -48,7 +98,7 @@
                     <div class="anime-genres" id="anime-genres"></div>
                     <p class="anime-synopsis" id="anime-synopsis"></p>
                     <div class="anime-actions">
-                        <button class="btn-primary" id="watch-first-episode">
+                        <button class="btn-primary glow" id="watch-first-episode">
                             <i class="fas fa-play"></i> شاهد الحلقة الأولى
                         </button>
                         <button class="btn-secondary" id="add-to-favorites">
@@ -78,24 +128,28 @@
         </section>
     </main>
 
-    <!-- مشغل الفيديو -->
+    <!-- مشغل الفيديو السينمائي -->
     <div class="video-overlay" id="video-overlay">
-        <div class="video-modal">
+        <div class="video-modal cinematic-modal">
             <div class="video-modal-header">
                 <h3 id="video-title">جاري التحميل...</h3>
-                <button class="close-video" id="close-video"><i class="fas fa-times"></i></button>
+                <div class="modal-actions">
+                    <button id="pip-btn" title="صورة داخل صورة"><i class="fas fa-window-restore"></i></button>
+                    <button class="close-video" id="close-video"><i class="fas fa-times"></i></button>
+                </div>
             </div>
             <div class="video-modal-body">
                 <div class="server-tabs" id="server-tabs">
-                    <button class="server-tab active" data-server="gogo">Gogoanime</button>
-                    <button class="server-tab" data-server="zoro">Zoro</button>
+                    <button class="server-tab active" data-server="main">المشغل الرئيسي</button>
+                    <button class="server-tab" data-server="backup">مشغل احتياطي</button>
                     <button class="server-tab" data-server="custom">رابط مخصص</button>
                 </div>
                 <div class="custom-url-input" id="custom-url-input" style="display: none;">
                     <input type="text" id="custom-video-url" placeholder="الصق رابط الفيديو المباشر هنا...">
-                    <button id="load-custom-url">تحميل</button>
+                    <button id="load-custom-url" class="glow">تحميل</button>
                 </div>
                 <div class="video-wrapper">
+                    <video id="plyr-video-main" playsinline controls style="display: none;"></video>
                     <iframe id="video-frame" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
                 </div>
             </div>
@@ -108,6 +162,9 @@
         </div>
     </footer>
 
+    <!-- Plyr JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <!-- سكربتات الصفحة -->
     <script src="anime.js"></script>
 </body>
 </html>

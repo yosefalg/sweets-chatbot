@@ -3,7 +3,10 @@ from flask import Flask, request, jsonify, send_from_directory, redirect
 import requests
 from datetime import datetime
 
-app = Flask(__name__, static_url_path='/static', static_folder='static')
+# تحديد المسار المطلق للمشروع
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, static_url_path='/static', static_folder=os.path.join(BASE_DIR, 'static'))
 
 JIKAN_BASE_URL = "https://api.jikan.moe/v4"
 
@@ -16,30 +19,33 @@ STREAM_SERVERS = {
     "animeapi": "https://anime-api.xyz/watch/{mal_id}/{episode}"
 }
 
+# ========== الصفحات الرئيسية ==========
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'index.html')
 
 @app.route('/anime')
 def anime_page():
-    return send_from_directory('static', 'anime.html')
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'anime.html')
 
+# ========== ملفات PWA و SEO ==========
 @app.route('/robots.txt')
 def robots():
-    return send_from_directory('static', 'robots.txt')
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'robots.txt')
 
 @app.route('/sitemap.xml')
 def sitemap():
-    return send_from_directory('static', 'sitemap.xml')
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'sitemap.xml')
 
 @app.route('/manifest.json')
 def manifest():
-    return send_from_directory('static', 'manifest.json')
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'manifest.json')
 
 @app.route('/service-worker.js')
 def service_worker():
-    return send_from_directory('static', 'service-worker.js')
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'service-worker.js')
 
+# ========== API: تحليلات الزوار ==========
 @app.route('/api/analytics', methods=['POST'])
 def analytics():
     data = request.get_json()
@@ -48,9 +54,9 @@ def analytics():
     print(f"[Analytics] {event}: {event_data}")
     return jsonify({"status": "ok"})
 
+# ========== API: قائمة السيرفرات ==========
 @app.route('/api/servers')
 def get_servers():
-    """إرجاع قائمة السيرفرات المتاحة"""
     return jsonify({
         "servers": [
             {"id": "2embed", "name": "2embed", "icon": "fa-play"},
@@ -62,9 +68,9 @@ def get_servers():
         ]
     })
 
+# ========== API: توجيه إلى سيرفر التشغيل ==========
 @app.route('/api/stream')
 def stream_episode():
-    """توجيه إلى سيرفر التشغيل المختار"""
     mal_id = request.args.get('mal_id', '1')
     episode = request.args.get('episode', '1')
     server = request.args.get('server', '2embed')
@@ -74,6 +80,7 @@ def stream_episode():
         return redirect(embed_url, code=302)
     return jsonify({"error": "سيرفر غير معروف"}), 400
 
+# ========== API: البحث عن أنمي ==========
 @app.route('/api/search')
 def search_anime():
     q = request.args.get('q', '')
@@ -103,6 +110,7 @@ def search_anime():
     except Exception as e:
         return jsonify({"results": [], "error": str(e)}), 500
 
+# ========== API: الأنميات الشائعة ==========
 @app.route('/api/top')
 def top_anime():
     page = request.args.get('page', '1')
@@ -129,6 +137,7 @@ def top_anime():
     except Exception as e:
         return jsonify({"results": []}), 500
 
+# ========== API: تفاصيل أنمي ==========
 @app.route('/api/anime/<int:anime_id>')
 def anime_details(anime_id):
     try:
@@ -157,6 +166,7 @@ def anime_details(anime_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ========== API: موسم الأنمي الحالي ==========
 @app.route('/api/season')
 def current_season():
     year = request.args.get('year', datetime.now().year)

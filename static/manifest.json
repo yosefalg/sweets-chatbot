@@ -1,0 +1,22 @@
+{
+  "name": "AnimeAI - منصة الأنمي الذكية",
+  "short_name": "AnimeAI",
+  "description": "شاهد أحدث وأفضل الأنميات المترجمة مجاناً بجودة عالية",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#8a2be2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

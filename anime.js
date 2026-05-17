@@ -2,7 +2,9 @@ const urlParams = new URLSearchParams(window.location.search);
 const animeId = urlParams.get('id');
 let currentAnimeTitle = '';
 let currentMalId = null;
+let currentEpisode = 1;
 let player = null;
+let availableServers = [];
 
 const animePoster = document.getElementById('anime-poster');
 const animeTitleDetailed = document.getElementById('anime-title-detailed');
@@ -24,11 +26,58 @@ const plyrVideoMain = document.getElementById('plyr-video-main');
 const videoTitle = document.getElementById('video-title');
 const closeVideo = document.getElementById('close-video');
 const pipBtn = document.getElementById('pip-btn');
+const serverTabsContainer = document.getElementById('server-tabs');
 const themeToggle = document.getElementById('theme-toggle');
 const episodeSearch = document.getElementById('episode-search');
 const episodeSort = document.getElementById('episode-sort');
 const watchFirstBtn = document.getElementById('watch-first-episode');
 const addFavBtn = document.getElementById('add-to-favorites');
+
+async function loadServers() {
+    try {
+        const resp = await fetch('/api/servers');
+        const data = await resp.json();
+        availableServers = data.servers || [];
+    } catch (e) {
+        availableServers = [
+            {id: "2embed", name: "2embed", icon: "fa-play"},
+            {id: "vidlink", name: "VidLink", icon: "fa-link"},
+            {id: "vidsrc", name: "VidSrc", icon: "fa-video"},
+            {id: "custom", name: "رابط مخصص", icon: "fa-upload"}
+        ];
+    }
+}
+
+function renderServerTabs(activeServer = '2embed') {
+    if (!serverTabsContainer) return;
+    serverTabsContainer.innerHTML = '';
+    availableServers.forEach(server => {
+        const btn = document.createElement('button');
+        btn.className = 'server-tab' + (server.id === activeServer ? ' active' : '');
+        btn.dataset.server = server.id;
+        btn.innerHTML = `<i class="fas ${server.icon || 'fa-server'}"></i> ${server.name}`;
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            const customInput = document.getElementById('custom-url-input');
+            if (this.dataset.server === 'custom') {
+                customInput.style.display = 'flex';
+            } else {
+                customInput.style.display = 'none';
+                changeServer(this.dataset.server);
+            }
+        });
+        serverTabsContainer.appendChild(btn);
+    });
+}
+
+function changeServer(serverId) {
+    if (serverId === 'custom') return;
+    const embedUrl = `/api/stream?mal_id=${currentMalId}&episode=${currentEpisode}&server=${serverId}`;
+    videoFrame.src = embedUrl;
+    videoFrame.style.display = 'block';
+    if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+}
 
 function createParticles() {
     const container = document.getElementById('particles-container');
@@ -124,12 +173,25 @@ episodeSort.addEventListener('change', function() {
 });
 
 function openVideoPlayer(malId, episodeNumber) {
+    currentMalId = malId;
+    currentEpisode = episodeNumber;
     const title = currentAnimeTitle || 'الأنمي';
-    const embedUrl = `https://www.2embed.skin/embed/anime/mal/${malId}/${episodeNumber}`;
     videoTitle.textContent = `${title} - الحلقة ${episodeNumber}`;
-    videoFrame.src = embedUrl;
-    videoFrame.style.display = 'block';
-    if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+    
+    const activeServer = document.querySelector('.server-tab.active');
+    const serverId = activeServer ? activeServer.dataset.server : '2embed';
+    
+    if (serverId === 'custom') {
+        const customInput = document.getElementById('custom-url-input');
+        if (customInput) customInput.style.display = 'flex';
+        videoFrame.src = '';
+    } else {
+        const embedUrl = `/api/stream?mal_id=${malId}&episode=${episodeNumber}&server=${serverId}`;
+        videoFrame.src = embedUrl;
+        videoFrame.style.display = 'block';
+        if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+    }
+    
     videoOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
     if (player) { player.destroy(); player = null; }
@@ -164,15 +226,6 @@ pipBtn.addEventListener('click', async () => {
     }
 });
 
-document.querySelectorAll('.server-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-        const customInput = document.getElementById('custom-url-input');
-        if (this.dataset.server === 'custom') { customInput.style.display = 'flex'; }
-        else { customInput.style.display = 'none'; }
-    });
-});
 document.getElementById('load-custom-url').addEventListener('click', () => {
     const url = document.getElementById('custom-video-url').value.trim();
     if (url) {
@@ -198,5 +251,11 @@ themeToggle.addEventListener('click', () => {
 });
 if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); themeToggle.querySelector('i').className = 'fas fa-sun'; }
 
-document.addEventListener('DOMContentLoaded', () => { createParticles(); initHeroCanvas(); loadAnimeDetails().then(() => initPosterTilt()); });
+document.addEventListener('DOMContentLoaded', async () => {
+    createParticles();
+    initHeroCanvas();
+    await loadServers();
+    renderServerTabs('2embed');
+    loadAnimeDetails().then(() => initPosterTilt());
+});
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeVideoPlayer(); });

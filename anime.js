@@ -1,6 +1,11 @@
+// ========== مرجع VidLink ==========
+const VIDLINK_BASE = "https://vidlink.pro/anime";
+
 // ========== استخراج ID الأنمي من الرابط ==========
 const urlParams = new URLSearchParams(window.location.search);
 const animeId = urlParams.get('id');
+let currentAnimeTitle = '';
+let currentMalId = null;
 
 // ========== عناصر DOM ==========
 const animePoster = document.getElementById('anime-poster');
@@ -39,11 +44,12 @@ async function loadAnimeDetails() {
         const data = await response.json();
         const anime = data.data;
 
-        // تحديث عنوان الصفحة
+        currentAnimeTitle = anime.title;
+        currentMalId = anime.mal_id;
+
         document.title = `${anime.title} - AnimeAI`;
         pageTitle.textContent = `${anime.title} - AnimeAI`;
 
-        // ملء البيانات
         animePoster.src = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || '';
         animePoster.onerror = () => animePoster.src = 'https://via.placeholder.com/300x400/1e1e3a/8a2be2?text=No+Image';
         animeHeroBg.style.backgroundImage = `url(${anime.images?.jpg?.large_image_url || ''})`;
@@ -57,7 +63,6 @@ async function loadAnimeDetails() {
         animeMembers.textContent = (anime.members || 0).toLocaleString();
         animeSynopsis.textContent = anime.synopsis || 'لا يوجد ملخص متاح.';
 
-        // الأنواع
         animeGenres.innerHTML = '';
         if (anime.genres) {
             anime.genres.forEach(genre => {
@@ -68,11 +73,10 @@ async function loadAnimeDetails() {
             });
         }
 
-        // تحميل الحلقات
         loadEpisodes(anime.episodes || 0);
 
         // زر شاهد الحلقة الأولى
-        watchFirstBtn.onclick = () => openVideoPlayer(anime.title, 1);
+        watchFirstBtn.onclick = () => openVideoPlayer(currentMalId || animeId, 1);
 
     } catch (error) {
         console.error('Error loading anime details:', error);
@@ -83,19 +87,15 @@ async function loadAnimeDetails() {
 // ========== إنشاء قائمة الحلقات ==========
 function loadEpisodes(totalEpisodes) {
     episodesGrid.innerHTML = '';
-    
     if (totalEpisodes === 0) {
         episodesGrid.innerHTML = '<p style="grid-column:1/-1;text-align:center;">عدد الحلقات غير معروف</p>';
         return;
     }
-
-    const title = animeTitleDetailed.textContent;
-    
     for (let i = 1; i <= Math.min(totalEpisodes, 100); i++) {
         const btn = document.createElement('button');
         btn.className = 'episode-btn';
         btn.textContent = `حلقة ${i}`;
-        btn.onclick = () => openVideoPlayer(title, i);
+        btn.onclick = () => openVideoPlayer(currentMalId || animeId, i);
         episodesGrid.appendChild(btn);
     }
 }
@@ -103,39 +103,32 @@ function loadEpisodes(totalEpisodes) {
 // ========== فلترة وترتيب الحلقات ==========
 episodeSearch.addEventListener('input', function() {
     const query = this.value.toLowerCase();
-    const buttons = episodesGrid.querySelectorAll('.episode-btn');
-    
-    buttons.forEach(btn => {
-        if (btn.textContent.toLowerCase().includes(query)) {
-            btn.style.display = '';
-        } else {
-            btn.style.display = 'none';
-        }
+    document.querySelectorAll('.episode-btn').forEach(btn => {
+        btn.style.display = btn.textContent.toLowerCase().includes(query) ? '' : 'none';
     });
 });
 
 episodeSort.addEventListener('change', function() {
-    const buttons = Array.from(episodesGrid.querySelectorAll('.episode-btn'));
-    const isDesc = this.value === 'desc';
-    
+    const buttons = Array.from(document.querySelectorAll('.episode-btn'));
     buttons.sort((a, b) => {
         const numA = parseInt(a.textContent.replace('حلقة ', ''));
         const numB = parseInt(b.textContent.replace('حلقة ', ''));
-        return isDesc ? numB - numA : numA - numB;
+        return this.value === 'desc' ? numB - numA : numA - numB;
     });
-    
     episodesGrid.innerHTML = '';
     buttons.forEach(btn => episodesGrid.appendChild(btn));
 });
 
-// ========== مشغل الفيديو ==========
-function openVideoPlayer(title, episodeNumber) {
+// ========== 🎬 مشغل الفيديو (VidLink API) ==========
+function openVideoPlayer(malId, episodeNumber) {
+    const subOrDub = 'sub'; // ترجمة افتراضياً
+    const title = currentAnimeTitle || 'الأنمي';
+    const embedUrl = `${VIDLINK_BASE}/${malId}/${episodeNumber}/${subOrDub}?primaryColor=8a2be2&secondaryColor=1e1e3a&iconColor=ff69b4&icons=vid&title=true&autoplay=true`;
+
     videoTitle.textContent = `${title} - الحلقة ${episodeNumber}`;
+    videoFrame.src = embedUrl;
     videoOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
-    
-    const searchQuery = encodeURIComponent(`${title} episode ${episodeNumber}`);
-    videoFrame.src = `https://www2.gogoanime.fi/search?keyword=${searchQuery}`;
 }
 
 function closeVideoPlayer() {
@@ -149,6 +142,26 @@ videoOverlay.addEventListener('click', (e) => {
     if (e.target === videoOverlay) closeVideoPlayer();
 });
 
+// ========== تغيير السيرفر ==========
+document.querySelectorAll('.server-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        const customInput = document.getElementById('custom-url-input');
+        if (this.dataset.server === 'custom') {
+            customInput.style.display = 'flex';
+        } else {
+            customInput.style.display = 'none';
+            // الإبقاء على VidLink (أو إضافة مزودين آخرين)
+        }
+    });
+});
+
+document.getElementById('load-custom-url').addEventListener('click', () => {
+    const url = document.getElementById('custom-video-url').value.trim();
+    if (url) videoFrame.src = url;
+});
+
 // ========== المفضلة ==========
 addFavBtn.addEventListener('click', function() {
     const favorites = JSON.parse(localStorage.getItem('anime_favorites') || '[]');
@@ -157,7 +170,6 @@ addFavBtn.addEventListener('click', function() {
         title: animeTitleDetailed.textContent,
         image: animePoster.src
     };
-    
     const index = favorites.findIndex(f => f.id === animeData.id);
     if (index === -1) {
         favorites.push(animeData);
@@ -168,7 +180,6 @@ addFavBtn.addEventListener('click', function() {
         this.innerHTML = '<i class="fas fa-heart"></i> أضف للمفضلة';
         this.style.background = '';
     }
-    
     localStorage.setItem('anime_favorites', JSON.stringify(favorites));
 });
 
@@ -184,7 +195,6 @@ themeToggle.addEventListener('click', () => {
         localStorage.setItem('theme', 'dark');
     }
 });
-
 if (localStorage.getItem('theme') === 'light') {
     document.body.classList.add('light-mode');
     themeToggle.querySelector('i').className = 'fas fa-sun';
@@ -194,32 +204,4 @@ if (localStorage.getItem('theme') === 'light') {
 document.addEventListener('DOMContentLoaded', loadAnimeDetails);
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeVideoPlayer();
-});
-
-// ========== تغيير السيرفر ==========
-document.querySelectorAll('.server-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        document.querySelectorAll('.server-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-        
-        const customInput = document.getElementById('custom-url-input');
-        if (this.dataset.server === 'custom') {
-            customInput.style.display = 'flex';
-        } else {
-            customInput.style.display = 'none';
-            const title = videoTitle.textContent;
-            const searchQuery = encodeURIComponent(title);
-            
-            if (this.dataset.server === 'gogo') {
-                videoFrame.src = `https://www2.gogoanime.fi/search?keyword=${searchQuery}`;
-            } else if (this.dataset.server === 'zoro') {
-                videoFrame.src = `https://zoro.to/search?keyword=${searchQuery}`;
-            }
-        }
-    });
-});
-
-document.getElementById('load-custom-url').addEventListener('click', () => {
-    const url = document.getElementById('custom-video-url').value.trim();
-    if (url) videoFrame.src = url;
 });

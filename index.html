@@ -6,86 +6,37 @@
     <title>AnimeAI - المنصة السينمائية للأنمي</title>
     <meta name="description" content="منصة AnimeAI السينمائية - استمتع بمشاهدة أحدث وأفضل الأنميات المترجمة بجودة عالية وبتجربة سينمائية غامرة.">
     
-    <!-- الخطوط والأيقونات -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- مكتبات الرسوم المتحركة -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
-
-    <!-- Plyr CSS -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 
-    <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#8a2be2">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="AnimeAI">
-
-    <!-- SEO -->
     <meta name="robots" content="index, follow">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
-    <!-- الأنماط الأساسية -->
     <link rel="stylesheet" href="/static/style.css">
-    <!-- تحسينات إضافية -->
     <link rel="stylesheet" href="/static/enhancements.css">
 
     <style>
-        /* تأثير الجسيمات */
-        .particles-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .particle {
-            position: absolute;
-            background: #8a2be2;
-            border-radius: 50%;
-            animation: float linear infinite;
-            opacity: 0;
-        }
-        @keyframes float {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
-            10% { opacity: 0.8; }
-            90% { opacity: 0.2; }
-            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
-        }
-        /* تأثير التوهج */
-        .glow {
-            box-shadow: 0 0 20px rgba(138, 43, 226, 0.7), 0 0 40px rgba(138, 43, 226, 0.3);
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.7); }
-            50% { box-shadow: 0 0 40px rgba(138, 43, 226, 1), 0 0 80px rgba(255, 105, 180, 0.5); }
-            100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.7); }
-        }
-        /* تأثير الوميض على النص */
-        .shimmer {
-            background: linear-gradient(90deg, #8a2be2, #ff69b4, #ff8c00, #ff69b4, #8a2be2);
-            background-size: 200% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shimmer 3s linear infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
+        .particles-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .particle { position: absolute; background: #8a2be2; border-radius: 50%; animation: float linear infinite; opacity: 0; }
+        @keyframes float { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.8; } 90% { opacity: 0.2; } 100% { transform: translateY(-10vh) scale(1.5); opacity: 0; } }
+        .glow { box-shadow: 0 0 20px rgba(138, 43, 226, 0.7), 0 0 40px rgba(138, 43, 226, 0.3); }
+        @keyframes pulse { 0% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.7); } 50% { box-shadow: 0 0 40px rgba(138, 43, 226, 1), 0 0 80px rgba(255, 105, 180, 0.5); } 100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.7); } }
+        .shimmer { background: linear-gradient(90deg, #8a2be2, #ff69b4, #ff8c00, #ff69b4, #8a2be2); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 3s linear infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body class="cinematic">
-    <!-- حاوية الجسيمات -->
     <div class="particles-container" id="particles-container"></div>
 
-    <!-- شريط التنقل العلوي -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="nav-logo">
@@ -111,7 +62,6 @@
         </div>
     </nav>
 
-    <!-- قسم الهيرو (Hero Section) -->
     <section class="hero" id="hero">
         <canvas id="hero-canvas"></canvas>
         <div class="hero-overlay"></div>
@@ -135,7 +85,6 @@
         </div>
     </section>
 
-    <!-- المحتوى الرئيسي -->
     <main class="main-content">
         <div class="tabs-container">
             <button class="tab-btn active" data-tab="popular"><i class="fas fa-fire"></i> الأكثر شعبية</button>
@@ -163,7 +112,6 @@
         </div>
     </main>
 
-    <!-- مشغل الفيديو السينمائي -->
     <div class="video-overlay" id="video-overlay">
         <div class="video-modal cinematic-modal">
             <div class="video-modal-header">
@@ -175,9 +123,7 @@
             </div>
             <div class="video-modal-body">
                 <div class="server-tabs" id="server-tabs">
-                    <button class="server-tab active" data-server="main">المشغل الرئيسي</button>
-                    <button class="server-tab" data-server="backup">مشغل احتياطي</button>
-                    <button class="server-tab" data-server="custom">رابط مخصص</button>
+                    <!-- السيرفرات ستضاف ديناميكياً -->
                 </div>
                 <div class="custom-url-input" id="custom-url-input" style="display: none;">
                     <input type="text" id="custom-video-url" placeholder="الصق رابط الفيديو المباشر هنا...">
@@ -192,7 +138,6 @@
         </div>
     </div>
 
-    <!-- تذييل الصفحة -->
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-section">
@@ -221,15 +166,11 @@
         </div>
     </footer>
 
-    <!-- Plyr JS -->
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-    <!-- السكربتات الأساسية -->
     <script src="/static/script.js"></script>
-    <!-- ملفات إضافية -->
     <script src="/static/analytics.js"></script>
     <script src="/static/security.js"></script>
     <script src="/static/performance.js"></script>
-    <!-- Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js')

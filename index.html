@@ -3,31 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AnimeAI - منصة الأنمي الذكية | شاهد أفضل الأنميات</title>
-    <meta name="description" content="منصة AnimeAI - شاهد أحدث وأفضل الأنميات المترجمة مجاناً. آلاف الحلقات بجودة عالية وبدون إعلانات.">
-    <link rel="stylesheet" href="style.css">
+    <title>AnimeAI - المنصة السينمائية للأنمي</title>
+    <meta name="description" content="منصة AnimeAI السينمائية - استمتع بمشاهدة أحدث وأفضل الأنميات المترجمة بجودة عالية وبتجربة سينمائية غامرة.">
+    
+    <!-- الخطوط والأيقونات -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- مكتبات الرسوم المتحركة -->
+    <!-- GSAP + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <!-- Vanilla Tilt JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* تأثير الجسيمات */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            background: #8a2be2;
+            border-radius: 50%;
+            animation: float linear infinite;
+            opacity: 0;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.2; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+        /* تأثير التوهج */
+        .glow {
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.7), 0 0 40px rgba(138, 43, 226, 0.3);
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.7); }
+            50% { box-shadow: 0 0 40px rgba(138, 43, 226, 1), 0 0 80px rgba(255, 105, 180, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.7); }
+        }
+        /* تأثير الوميض على النص */
+        .shimmer {
+            background: linear-gradient(90deg, #8a2be2, #ff69b4, #ff8c00, #ff69b4, #8a2be2);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
 </head>
-<body>
+<body class="cinematic">
+    <!-- حاوية الجسيمات -->
+    <div class="particles-container" id="particles-container"></div>
+
     <!-- شريط التنقل العلوي -->
-    <nav class="navbar">
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="nav-logo">
                 <i class="fas fa-play-circle"></i>
-                <span>AnimeAI</span>
+                <span class="shimmer">AnimeAI</span>
             </div>
             <div class="nav-links">
                 <a href="/" class="nav-link active"><i class="fas fa-home"></i> الرئيسية</a>
                 <a href="#" class="nav-link"><i class="fas fa-fire"></i> الشائعة</a>
                 <a href="#" class="nav-link"><i class="fas fa-star"></i> الأعلى تقييماً</a>
                 <a href="#" class="nav-link"><i class="fas fa-film"></i> أفلام</a>
+                <a href="#" class="nav-link"><i class="fas fa-clock"></i> قيد المتابعة</a>
             </div>
             <div class="nav-actions">
                 <button class="theme-toggle" id="theme-toggle" title="تغيير الوضع">
                     <i class="fas fa-moon"></i>
                 </button>
-                <div class="search-box">
+                <div class="search-box glow">
                     <input type="text" id="search-input" placeholder="ابحث عن أنمي... مثال: Attack on Titan">
                     <button id="search-btn"><i class="fas fa-search"></i></button>
                 </div>
@@ -36,11 +100,12 @@
     </nav>
 
     <!-- قسم الهيرو (Hero Section) -->
-    <section class="hero">
+    <section class="hero" id="hero">
+        <canvas id="hero-canvas"></canvas>
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 class="hero-title">مرحباً بك في <span>AnimeAI</span></h1>
-            <p class="hero-subtitle">أكبر منصة عربية لمشاهدة الأنمي المترجم - آلاف الحلقات بجودة عالية وبدون إعلانات</p>
+            <h1 class="hero-title">مرحباً بك في <span class="shimmer">AnimeAI</span></h1>
+            <p class="hero-subtitle">المنصة السينمائية الأولى لمشاهدة الأنمي المترجم - تجربة غامرة بجودة عالية ورسوم متحركة ساحرة</p>
             <div class="hero-stats">
                 <div class="stat-item">
                     <span class="stat-number" data-count="5000">0</span>
@@ -52,7 +117,7 @@
                 </div>
                 <div class="stat-item">
                     <span class="stat-number" data-count="50">0</span>
-                    <span class="stat-label">جودة متاحة</span>
+                    <span class="stat-label">جودة</span>
                 </div>
             </div>
         </div>
@@ -62,15 +127,14 @@
     <main class="main-content">
         <!-- علامات التبويب (Tabs) -->
         <div class="tabs-container">
-            <button class="tab-btn active" data-tab="popular">الأكثر شعبية 🔥</button>
-            <button class="tab-btn" data-tab="top">الأعلى تقييماً ⭐</button>
-            <button class="tab-btn" data-tab="airing">قيد العرض 📺</button>
-            <button class="tab-btn" data-tab="upcoming">قريباً 🆕</button>
+            <button class="tab-btn active" data-tab="popular"><i class="fas fa-fire"></i> الأكثر شعبية</button>
+            <button class="tab-btn" data-tab="top"><i class="fas fa-star"></i> الأعلى تقييماً</button>
+            <button class="tab-btn" data-tab="airing"><i class="fas fa-tv"></i> قيد العرض</button>
+            <button class="tab-btn" data-tab="upcoming"><i class="fas fa-clock"></i> قريباً</button>
         </div>
 
         <!-- قسم عرض الأنميات -->
         <div class="anime-grid" id="anime-grid">
-            <!-- سيتم ملؤها تلقائياً عبر JavaScript -->
             <div class="loading-spinner">
                 <div class="spinner"></div>
                 <p>جاري تحميل الأنميات...</p>
@@ -79,8 +143,8 @@
 
         <!-- زر عرض المزيد -->
         <div class="load-more-container">
-            <button id="load-more-btn" class="load-more-btn">
-                عرض المزيد <i class="fas fa-chevron-down"></i>
+            <button id="load-more-btn" class="load-more-btn glow">
+                <i class="fas fa-chevron-down"></i> عرض المزيد
             </button>
         </div>
 
@@ -91,24 +155,28 @@
         </div>
     </main>
 
-    <!-- مشغل الفيديو (يظهر عند المشاهدة) -->
+    <!-- مشغل الفيديو السينمائي -->
     <div class="video-overlay" id="video-overlay">
-        <div class="video-modal">
+        <div class="video-modal cinematic-modal">
             <div class="video-modal-header">
                 <h3 id="video-title">جاري التحميل...</h3>
-                <button class="close-video" id="close-video"><i class="fas fa-times"></i></button>
+                <div class="modal-actions">
+                    <button id="pip-btn" title="صورة داخل صورة"><i class="fas fa-window-restore"></i></button>
+                    <button class="close-video" id="close-video"><i class="fas fa-times"></i></button>
+                </div>
             </div>
             <div class="video-modal-body">
                 <div class="server-tabs" id="server-tabs">
-                    <button class="server-tab active" data-server="gogo">Gogoanime</button>
-                    <button class="server-tab" data-server="zoro">Zoro</button>
+                    <button class="server-tab active" data-server="main">المشغل الرئيسي</button>
+                    <button class="server-tab" data-server="backup">مشغل احتياطي</button>
                     <button class="server-tab" data-server="custom">رابط مخصص</button>
                 </div>
                 <div class="custom-url-input" id="custom-url-input" style="display: none;">
                     <input type="text" id="custom-video-url" placeholder="الصق رابط الفيديو المباشر هنا...">
-                    <button id="load-custom-url">تحميل</button>
+                    <button id="load-custom-url" class="glow">تحميل</button>
                 </div>
                 <div class="video-wrapper">
+                    <video id="plyr-video-main" playsinline controls style="display: none;"></video>
                     <iframe id="video-frame" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
                 </div>
                 <div class="episode-navigation" id="episode-navigation">
@@ -122,8 +190,8 @@
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-section">
-                <h3>AnimeAI</h3>
-                <p>أفضل منصة عربية لمشاهدة الأنمي المترجم. آلاف الأنميات والحلقات بجودة عالية.</p>
+                <h3 class="shimmer">AnimeAI</h3>
+                <p>أفضل منصة عربية لمشاهدة الأنمي المترجم بتجربة سينمائية.</p>
             </div>
             <div class="footer-section">
                 <h3>روابط سريعة</h3>
@@ -147,6 +215,9 @@
         </div>
     </footer>
 
+    <!-- Plyr JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <!-- سكربتات المنصة -->
     <script src="script.js"></script>
 </body>
 </html>

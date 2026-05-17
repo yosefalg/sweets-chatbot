@@ -4,9 +4,6 @@ let currentPage = 1;
 let isLoading = false;
 let animeData = {};
 
-// ========== مرجع VidLink ==========
-const VIDLINK_BASE = "https://vidlink.pro/anime";
-
 // ========== عناصر DOM ==========
 const animeGrid = document.getElementById('anime-grid');
 const searchInput = document.getElementById('search-input');
@@ -145,10 +142,10 @@ async function searchAnime(query) {
     }
 }
 
-// ========== 🎬 مشغل الفيديو (VidLink API) ==========
+// ========== 🎬 مشغل الفيديو (2embed API) ==========
 function openVideoPlayer(title, malId = 1, episodeNumber = 1) {
-    const subOrDub = 'sub'; // ترجمة افتراضياً، غيّر إلى 'dub' للدبلجة
-    const embedUrl = `${VIDLINK_BASE}/${malId}/${episodeNumber}/${subOrDub}?primaryColor=8a2be2&secondaryColor=1e1e3a&iconColor=ff69b4&icons=vid&title=true&autoplay=true`;
+    // استخدام 2embed API لتضمين الفيديو
+    const embedUrl = `https://www.2embed.skin/embed/anime/mal/${malId}/${episodeNumber}`;
 
     videoTitle.textContent = `${title} - الحلقة ${episodeNumber}`;
     videoFrame.src = embedUrl;
@@ -170,9 +167,9 @@ serverTabs.forEach(tab => {
         const currentSrc = videoFrame.src;
         if (this.dataset.server === 'custom') {
             customUrlInput.style.display = 'flex';
-        } else if (this.dataset.server === 'vidlink') {
+        } else if (this.dataset.server === '2embed') {
             customUrlInput.style.display = 'none';
-            // VidLink يبقى كما هو (الافتراضي)
+            // 2embed يبقى كما هو (الافتراضي)
         }
         // يمكن إضافة مزودين آخرين هنا
     });

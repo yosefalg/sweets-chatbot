@@ -1,14 +1,20 @@
 import os
 from flask import Flask, request, jsonify, send_from_directory, redirect
-from flask_squeeze import Squeeze
 import requests
 from datetime import datetime
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
-squeeze = Squeeze()
-squeeze.init_app(app)  # ضغط وتحسين الأداء تلقائياً
 
 JIKAN_BASE_URL = "https://api.jikan.moe/v4"
+
+# ========== سيرفرات التشغيل المتعددة ==========
+STREAM_SERVERS = {
+    "2embed": "https://www.2embed.skin/embed/anime/mal/{mal_id}/{episode}",
+    "vidlink": "https://vidlink.pro/anime/{mal_id}/{episode}/sub",
+    "vidsrc": "https://vidsrc.xyz/embed/anime?mal_id={mal_id}&episode={episode}",
+    "vidcdn": "https://vidcdn.xyz/embed/{mal_id}/{episode}",
+    "animeapi": "https://anime-api.xyz/watch/{mal_id}/{episode}"
+}
 
 @app.route('/')
 def index():
@@ -18,7 +24,6 @@ def index():
 def anime_page():
     return send_from_directory('static', 'anime.html')
 
-# ========== ملفات PWA و SEO ==========
 @app.route('/robots.txt')
 def robots():
     return send_from_directory('static', 'robots.txt')
@@ -35,28 +40,48 @@ def manifest():
 def service_worker():
     return send_from_directory('static', 'service-worker.js')
 
-# ========== API: تحليلات الزوار ==========
 @app.route('/api/analytics', methods=['POST'])
 def analytics():
     data = request.get_json()
     event = data.get('event', '')
     event_data = data.get('data', {})
-    # هنا يمكن حفظ البيانات في قاعدة بيانات أو ملف سجل
     print(f"[Analytics] {event}: {event_data}")
     return jsonify({"status": "ok"})
 
-# ========== API: البحث عن أنمي ==========
+@app.route('/api/servers')
+def get_servers():
+    """إرجاع قائمة السيرفرات المتاحة"""
+    return jsonify({
+        "servers": [
+            {"id": "2embed", "name": "2embed", "icon": "fa-play"},
+            {"id": "vidlink", "name": "VidLink", "icon": "fa-link"},
+            {"id": "vidsrc", "name": "VidSrc", "icon": "fa-video"},
+            {"id": "vidcdn", "name": "VidCDN", "icon": "fa-cloud"},
+            {"id": "animeapi", "name": "AnimeAPI", "icon": "fa-server"},
+            {"id": "custom", "name": "رابط مخصص", "icon": "fa-upload"}
+        ]
+    })
+
+@app.route('/api/stream')
+def stream_episode():
+    """توجيه إلى سيرفر التشغيل المختار"""
+    mal_id = request.args.get('mal_id', '1')
+    episode = request.args.get('episode', '1')
+    server = request.args.get('server', '2embed')
+    
+    if server in STREAM_SERVERS:
+        embed_url = STREAM_SERVERS[server].format(mal_id=mal_id, episode=episode)
+        return redirect(embed_url, code=302)
+    return jsonify({"error": "سيرفر غير معروف"}), 400
+
 @app.route('/api/search')
 def search_anime():
     q = request.args.get('q', '')
     page = request.args.get('page', '1')
-    type_filter = request.args.get('type', '')
     if not q:
         return jsonify({"results": []})
     try:
         params = {"q": q, "page": page, "limit": 20}
-        if type_filter:
-            params["type"] = type_filter
         resp = requests.get(f"{JIKAN_BASE_URL}/anime", params=params, timeout=10)
         resp.raise_for_status()
         data = resp.json()
@@ -78,7 +103,6 @@ def search_anime():
     except Exception as e:
         return jsonify({"results": [], "error": str(e)}), 500
 
-# ========== API: الأنميات الشائعة ==========
 @app.route('/api/top')
 def top_anime():
     page = request.args.get('page', '1')
@@ -105,7 +129,6 @@ def top_anime():
     except Exception as e:
         return jsonify({"results": []}), 500
 
-# ========== API: تفاصيل أنمي ==========
 @app.route('/api/anime/<int:anime_id>')
 def anime_details(anime_id):
     try:
@@ -134,7 +157,6 @@ def anime_details(anime_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ========== API: موسم الأنمي الحالي ==========
 @app.route('/api/season')
 def current_season():
     year = request.args.get('year', datetime.now().year)
@@ -160,12 +182,6 @@ def current_season():
         return jsonify({"results": results})
     except Exception as e:
         return jsonify({"results": []}), 500
-
-# ========== API: إعادة توجيه للمشغل ==========
-@app.route('/api/stream/<int:mal_id>/<int:episode>')
-def stream_episode(mal_id, episode):
-    embed_url = f"https://www.2embed.skin/embed/anime/mal/{mal_id}/{episode}"
-    return redirect(embed_url, code=302)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

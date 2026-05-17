@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">تفاصيل الأنمي - AnimeAI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo" onclick="window.location.href='/'">
+                <i class="fas fa-play-circle"></i>
+                <span>AnimeAI</span>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="#" class="nav-link"><i class="fas fa-fire"></i> الشائعة</a>
+            </div>
+            <button class="theme-toggle" id="theme-toggle" title="تغيير الوضع">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- محتوى تفاصيل الأنمي -->
+    <main class="anime-detail-container">
+        <div class="anime-hero" id="anime-hero">
+            <div class="anime-hero-bg" id="anime-hero-bg"></div>
+            <div class="anime-hero-content">
+                <div class="anime-poster">
+                    <img id="anime-poster" src="" alt="">
+                </div>
+                <div class="anime-info-detailed">
+                    <h1 id="anime-title-detailed"></h1>
+                    <h3 id="anime-title-english"></h3>
+                    <div class="anime-meta">
+                        <span class="meta-item"><i class="fas fa-star"></i> <span id="anime-score"></span></span>
+                        <span class="meta-item"><i class="fas fa-tv"></i> <span id="anime-type"></span></span>
+                        <span class="meta-item"><i class="fas fa-list-ol"></i> <span id="anime-episodes"></span> حلقة</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> <span id="anime-duration"></span></span>
+                        <span class="meta-item"><i class="fas fa-calendar"></i> <span id="anime-aired"></span></span>
+                        <span class="meta-item"><i class="fas fa-users"></i> <span id="anime-members"></span> متابع</span>
+                    </div>
+                    <div class="anime-genres" id="anime-genres"></div>
+                    <p class="anime-synopsis" id="anime-synopsis"></p>
+                    <div class="anime-actions">
+                        <button class="btn-primary" id="watch-first-episode">
+                            <i class="fas fa-play"></i> شاهد الحلقة الأولى
+                        </button>
+                        <button class="btn-secondary" id="add-to-favorites">
+                            <i class="fas fa-heart"></i> أضف للمفضلة
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة الحلقات -->
+        <section class="episodes-section">
+            <h2 class="section-title">جميع الحلقات</h2>
+            <div class="episodes-filter">
+                <input type="text" id="episode-search" placeholder="ابحث عن رقم الحلقة...">
+                <select id="episode-sort">
+                    <option value="asc">من الأقدم للأحدث</option>
+                    <option value="desc">من الأحدث للأقدم</option>
+                </select>
+            </div>
+            <div class="episodes-grid" id="episodes-grid">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>جاري تحميل الحلقات...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- مشغل الفيديو -->
+    <div class="video-overlay" id="video-overlay">
+        <div class="video-modal">
+            <div class="video-modal-header">
+                <h3 id="video-title">جاري التحميل...</h3>
+                <button class="close-video" id="close-video"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="video-modal-body">
+                <div class="server-tabs" id="server-tabs">
+                    <button class="server-tab active" data-server="gogo">Gogoanime</button>
+                    <button class="server-tab" data-server="zoro">Zoro</button>
+                    <button class="server-tab" data-server="custom">رابط مخصص</button>
+                </div>
+                <div class="custom-url-input" id="custom-url-input" style="display: none;">
+                    <input type="text" id="custom-video-url" placeholder="الصق رابط الفيديو المباشر هنا...">
+                    <button id="load-custom-url">تحميل</button>
+                </div>
+                <div class="video-wrapper">
+                    <iframe id="video-frame" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>© 2025 AnimeAI. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+
+    <script src="anime.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://yosef4.pythonanywhere.com/sitemap.xml

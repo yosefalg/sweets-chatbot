@@ -3,6 +3,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const animeId = urlParams.get('id');
 let currentAnimeTitle = '';
 let currentMalId = null;
+let player = null;
 
 // ========== عناصر DOM ==========
 const animePoster = document.getElementById('anime-poster');
@@ -21,13 +22,79 @@ const episodesGrid = document.getElementById('episodes-grid');
 const pageTitle = document.getElementById('page-title');
 const videoOverlay = document.getElementById('video-overlay');
 const videoFrame = document.getElementById('video-frame');
+const plyrVideoMain = document.getElementById('plyr-video-main');
 const videoTitle = document.getElementById('video-title');
 const closeVideo = document.getElementById('close-video');
+const pipBtn = document.getElementById('pip-btn');
 const themeToggle = document.getElementById('theme-toggle');
 const episodeSearch = document.getElementById('episode-search');
 const episodeSort = document.getElementById('episode-sort');
 const watchFirstBtn = document.getElementById('watch-first-episode');
 const addFavBtn = document.getElementById('add-to-favorites');
+
+// ========== تأثيرات الجسيمات ==========
+function createParticles() {
+    const container = document.getElementById('particles-container');
+    if (!container) return;
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        const size = Math.random() * 3 + 1;
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDuration = Math.random() * 12 + 8 + 's';
+        particle.style.animationDelay = Math.random() * 8 + 's';
+        particle.style.background = i % 2 === 0 ? '#8a2be2' : '#ff69b4';
+        container.appendChild(particle);
+    }
+}
+
+// ========== تأثيرات القسم البطل ==========
+function initHeroCanvas() {
+    const canvas = document.getElementById('hero-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    const particles = [];
+    for (let i = 0; i < 50; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 2 + 0.5,
+            speed: Math.random() * 0.3 + 0.1,
+            opacity: Math.random() * 0.4 + 0.2
+        });
+    }
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.y -= p.speed;
+            if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(138, 43, 226, ${p.opacity})`;
+            ctx.fill();
+        });
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
+
+// ========== تفعيل VanillaTilt على البوستر ==========
+function initPosterTilt() {
+    const posterContainer = document.getElementById('anime-poster-container');
+    if (posterContainer && typeof VanillaTilt !== 'undefined') {
+        VanillaTilt.init(posterContainer, {
+            max: 20,
+            speed: 400,
+            glare: true,
+            'max-glare': 0.5,
+            scale: 1.05
+        });
+    }
+}
 
 // ========== تحميل بيانات الأنمي ==========
 async function loadAnimeDetails() {
@@ -71,8 +138,6 @@ async function loadAnimeDetails() {
         }
 
         loadEpisodes(anime.episodes || 0);
-
-        // زر شاهد الحلقة الأولى
         watchFirstBtn.onclick = () => openVideoPlayer(currentMalId || animeId, 1);
 
     } catch (error) {
@@ -116,27 +181,72 @@ episodeSort.addEventListener('change', function() {
     buttons.forEach(btn => episodesGrid.appendChild(btn));
 });
 
-// ========== 🎬 مشغل الفيديو (2embed API) ==========
+// ========== 🎬 مشغل الفيديو السينمائي ==========
 function openVideoPlayer(malId, episodeNumber) {
     const title = currentAnimeTitle || 'الأنمي';
-    // استخدام 2embed API لتضمين الفيديو
     const embedUrl = `https://www.2embed.skin/embed/anime/mal/${malId}/${episodeNumber}`;
 
     videoTitle.textContent = `${title} - الحلقة ${episodeNumber}`;
     videoFrame.src = embedUrl;
+    videoFrame.style.display = 'block';
+    if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+    
     videoOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
+    
+    if (player) {
+        player.destroy();
+        player = null;
+    }
+}
+
+function playDirectUrl(url) {
+    videoFrame.style.display = 'none';
+    if (plyrVideoMain) {
+        plyrVideoMain.style.display = 'block';
+        plyrVideoMain.innerHTML = '';
+        const source = document.createElement('source');
+        source.src = url;
+        plyrVideoMain.appendChild(source);
+        
+        if (player) player.destroy();
+        player = new Plyr(plyrVideoMain, {
+            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+            autoplay: true,
+            tooltips: { controls: true, seek: true },
+            hideControls: false,
+            fullscreen: { enabled: true, fallback: true, iosNative: true },
+            ratio: '16:9'
+        });
+    }
 }
 
 function closeVideoPlayer() {
     videoOverlay.classList.remove('active');
     document.body.style.overflow = '';
     videoFrame.src = '';
+    videoFrame.style.display = 'block';
+    if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+    if (player) {
+        player.destroy();
+        player = null;
+    }
 }
 
 closeVideo.addEventListener('click', closeVideoPlayer);
 videoOverlay.addEventListener('click', (e) => {
     if (e.target === videoOverlay) closeVideoPlayer();
+});
+
+pipBtn.addEventListener('click', async () => {
+    const video = document.querySelector('video');
+    if (video && video !== plyrVideoMain) {
+        if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+        } else {
+            await video.requestPictureInPicture();
+        }
+    }
 });
 
 // ========== تغيير السيرفر ==========
@@ -149,24 +259,27 @@ document.querySelectorAll('.server-tab').forEach(tab => {
             customInput.style.display = 'flex';
         } else {
             customInput.style.display = 'none';
-            // الإبقاء على 2embed (أو إضافة مزودين آخرين)
         }
     });
 });
 
 document.getElementById('load-custom-url').addEventListener('click', () => {
     const url = document.getElementById('custom-video-url').value.trim();
-    if (url) videoFrame.src = url;
+    if (url) {
+        if (/\.(mp4|webm|ogg|m3u8|mpd)(\?.*)?$/i.test(url) || url.includes('youtube.com') || url.includes('vimeo.com')) {
+            playDirectUrl(url);
+        } else {
+            videoFrame.src = url;
+            videoFrame.style.display = 'block';
+            if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+        }
+    }
 });
 
 // ========== المفضلة ==========
 addFavBtn.addEventListener('click', function() {
     const favorites = JSON.parse(localStorage.getItem('anime_favorites') || '[]');
-    const animeData = {
-        id: animeId,
-        title: animeTitleDetailed.textContent,
-        image: animePoster.src
-    };
+    const animeData = { id: animeId, title: animeTitleDetailed.textContent, image: animePoster.src };
     const index = favorites.findIndex(f => f.id === animeData.id);
     if (index === -1) {
         favorites.push(animeData);
@@ -198,7 +311,11 @@ if (localStorage.getItem('theme') === 'light') {
 }
 
 // ========== تحميل الصفحة ==========
-document.addEventListener('DOMContentLoaded', loadAnimeDetails);
+document.addEventListener('DOMContentLoaded', () => {
+    createParticles();
+    initHeroCanvas();
+    loadAnimeDetails().then(() => initPosterTilt());
+});
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeVideoPlayer();
 });

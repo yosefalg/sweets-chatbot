@@ -3,6 +3,7 @@ let currentTab = 'popular';
 let currentPage = 1;
 let isLoading = false;
 let animeData = {};
+let player = null;
 
 // ========== عناصر DOM ==========
 const animeGrid = document.getElementById('anime-grid');
@@ -15,12 +16,71 @@ const tabBtns = document.querySelectorAll('.tab-btn');
 const themeToggle = document.getElementById('theme-toggle');
 const videoOverlay = document.getElementById('video-overlay');
 const videoFrame = document.getElementById('video-frame');
+const plyrVideoMain = document.getElementById('plyr-video-main');
 const videoTitle = document.getElementById('video-title');
 const closeVideo = document.getElementById('close-video');
+const pipBtn = document.getElementById('pip-btn');
 const serverTabs = document.querySelectorAll('.server-tab');
 const customUrlInput = document.getElementById('custom-url-input');
 const customVideoUrl = document.getElementById('custom-video-url');
 const loadCustomUrl = document.getElementById('load-custom-url');
+
+// ========== تأثيرات الجسيمات ==========
+function createParticles() {
+    const container = document.getElementById('particles-container');
+    if (!container) return;
+    
+    for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        const size = Math.random() * 4 + 2;
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDuration = Math.random() * 15 + 10 + 's';
+        particle.style.animationDelay = Math.random() * 10 + 's';
+        particle.style.background = i % 2 === 0 ? '#8a2be2' : '#ff69b4';
+        container.appendChild(particle);
+    }
+}
+
+// ========== تأثيرات القسم البطل ==========
+function initHeroCanvas() {
+    const canvas = document.getElementById('hero-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    
+    const particles = [];
+    for (let i = 0; i < 80; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 2 + 1,
+            speed: Math.random() * 0.5 + 0.2,
+            opacity: Math.random() * 0.5 + 0.3
+        });
+    }
+    
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.y -= p.speed;
+            if (p.y < -10) {
+                p.y = canvas.height + 10;
+                p.x = Math.random() * canvas.width;
+            }
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(138, 43, 226, ${p.opacity})`;
+            ctx.fill();
+        });
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
 
 // ========== إحصائيات العد التصاعدي ==========
 function animateStats() {
@@ -29,6 +89,7 @@ function animateStats() {
         const duration = 2000;
         const step = target / (duration / 16);
         let current = 0;
+        
         const updateCounter = () => {
             current += step;
             if (current < target) {
@@ -40,6 +101,22 @@ function animateStats() {
         };
         updateCounter();
     });
+}
+
+// ========== تأثيرات الظهور عند التمرير ==========
+function initScrollReveal() {
+    const elements = document.querySelectorAll('.anime-card, .section-title, .load-more-btn');
+    elements.forEach(el => el.classList.add('reveal'));
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    
+    elements.forEach(el => observer.observe(el));
 }
 
 // ========== تحميل الأنميات ==========
@@ -71,7 +148,7 @@ function renderAnimeCards(animeList, container) {
 
     animeList.forEach((anime, index) => {
         const card = document.createElement('div');
-        card.className = 'anime-card';
+        card.className = 'anime-card reveal fade-in-up';
         card.style.animationDelay = `${index * 0.05}s`;
         card.onclick = () => window.location.href = `/anime?id=${anime.mal_id}`;
 
@@ -98,12 +175,26 @@ function renderAnimeCards(animeList, container) {
         `;
         container.appendChild(card);
     });
+    
+    // تفعيل VanillaTilt على البطاقات الجديدة
+    if (typeof VanillaTilt !== 'undefined') {
+        VanillaTilt.init(container.querySelectorAll('.anime-card'), {
+            max: 15,
+            speed: 400,
+            glare: true,
+            'max-glare': 0.3,
+            scale: 1.05
+        });
+    }
+    
+    initScrollReveal();
 }
 
 // ========== تحميل الصفحة الرئيسية ==========
 async function loadAnimeList(tab = 'popular', page = 1, append = false) {
     if (isLoading) return;
     isLoading = true;
+
     if (!append) {
         animeGrid.innerHTML = `
             <div class="loading-spinner">
@@ -112,6 +203,7 @@ async function loadAnimeList(tab = 'popular', page = 1, append = false) {
             </div>
         `;
     }
+
     const animeList = await fetchAnime(tab, page);
     animeData[tab] = append ? [...(animeData[tab] || []), ...animeList] : animeList;
     renderAnimeCards(animeData[tab], animeGrid);
@@ -121,6 +213,7 @@ async function loadAnimeList(tab = 'popular', page = 1, append = false) {
 // ========== البحث عن أنمي ==========
 async function searchAnime(query) {
     if (!query.trim()) return;
+    
     try {
         searchResultsContainer.style.display = 'block';
         searchResultsGrid.innerHTML = `
@@ -129,8 +222,10 @@ async function searchAnime(query) {
                 <p>جاري البحث...</p>
             </div>
         `;
+        
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         const data = await response.json();
+        
         if (data.results && data.results.length > 0) {
             renderAnimeCards(data.results, searchResultsGrid);
             searchResultsContainer.scrollIntoView({ behavior: 'smooth' });
@@ -138,47 +233,109 @@ async function searchAnime(query) {
             searchResultsGrid.innerHTML = '<p style="text-align:center;grid-column:1/-1;padding:50px;">لم يتم العثور على نتائج</p>';
         }
     } catch (error) {
+        console.error('Search error:', error);
         searchResultsGrid.innerHTML = '<p style="text-align:center;grid-column:1/-1;padding:50px;">حدث خطأ في البحث</p>';
     }
 }
 
-// ========== 🎬 مشغل الفيديو (2embed API) ==========
+// ========== 🎬 مشغل الفيديو السينمائي ==========
 function openVideoPlayer(title, malId = 1, episodeNumber = 1) {
-    // استخدام 2embed API لتضمين الفيديو
+    // استخدام 2embed كمشغل افتراضي
     const embedUrl = `https://www.2embed.skin/embed/anime/mal/${malId}/${episodeNumber}`;
 
     videoTitle.textContent = `${title} - الحلقة ${episodeNumber}`;
     videoFrame.src = embedUrl;
+    videoFrame.style.display = 'block';
+    if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+    
     videoOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
+    
+    // إعادة تعيين Plyr
+    if (player) {
+        player.destroy();
+        player = null;
+    }
+}
+
+// ========== تشغيل رابط مباشر بـ Plyr ==========
+function playDirectUrl(url) {
+    videoFrame.style.display = 'none';
+    if (plyrVideoMain) {
+        plyrVideoMain.style.display = 'block';
+        plyrVideoMain.innerHTML = '';
+        const source = document.createElement('source');
+        source.src = url;
+        plyrVideoMain.appendChild(source);
+        
+        if (player) player.destroy();
+        player = new Plyr(plyrVideoMain, {
+            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+            autoplay: true,
+            tooltips: { controls: true, seek: true },
+            hideControls: false,
+            fullscreen: { enabled: true, fallback: true, iosNative: true },
+            ratio: '16:9'
+        });
+    }
 }
 
 function closeVideoPlayer() {
     videoOverlay.classList.remove('active');
     document.body.style.overflow = '';
     videoFrame.src = '';
+    videoFrame.style.display = 'block';
+    if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+    if (player) {
+        player.destroy();
+        player = null;
+    }
 }
+
+// ========== صورة داخل صورة ==========
+pipBtn.addEventListener('click', async () => {
+    const video = document.querySelector('video');
+    if (video && video !== plyrVideoMain) {
+        if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+        } else {
+            await video.requestPictureInPicture();
+        }
+    }
+});
 
 // ========== تغيير السيرفر ==========
 serverTabs.forEach(tab => {
     tab.addEventListener('click', function() {
         serverTabs.forEach(t => t.classList.remove('active'));
         this.classList.add('active');
-        const currentSrc = videoFrame.src;
+        
         if (this.dataset.server === 'custom') {
             customUrlInput.style.display = 'flex';
-        } else if (this.dataset.server === '2embed') {
+        } else {
             customUrlInput.style.display = 'none';
-            // 2embed يبقى كما هو (الافتراضي)
+            // العودة إلى المشغل الافتراضي
+            const currentTitle = videoTitle.textContent;
+            const embedUrl = `https://www.2embed.skin/embed/anime/mal/${currentMalId || 1}/1`;
+            videoFrame.src = embedUrl;
+            videoFrame.style.display = 'block';
+            if (plyrVideoMain) plyrVideoMain.style.display = 'none';
         }
-        // يمكن إضافة مزودين آخرين هنا
     });
 });
 
 // ========== تحميل رابط مخصص ==========
 loadCustomUrl.addEventListener('click', () => {
     const url = customVideoUrl.value.trim();
-    if (url) videoFrame.src = url;
+    if (url) {
+        if (/\.(mp4|webm|ogg|m3u8|mpd)(\?.*)?$/i.test(url) || url.includes('youtube.com') || url.includes('vimeo.com')) {
+            playDirectUrl(url);
+        } else {
+            videoFrame.src = url;
+            videoFrame.style.display = 'block';
+            if (plyrVideoMain) plyrVideoMain.style.display = 'none';
+        }
+    }
 });
 
 // ========== أحداث ==========
@@ -217,6 +374,8 @@ themeToggle.addEventListener('click', () => {
         localStorage.setItem('theme', 'dark');
     }
 });
+
+// تحميل الثيم المحفوظ
 if (localStorage.getItem('theme') === 'light') {
     document.body.classList.add('light-mode');
     themeToggle.querySelector('i').className = 'fas fa-sun';
@@ -224,6 +383,8 @@ if (localStorage.getItem('theme') === 'light') {
 
 // ========== تحميل الصفحة ==========
 document.addEventListener('DOMContentLoaded', () => {
+    createParticles();
+    initHeroCanvas();
     animateStats();
     loadAnimeList('popular', 1, false);
 });
@@ -236,3 +397,6 @@ document.addEventListener('keydown', (e) => {
         searchInput.focus();
     }
 });
+
+// ========== متغير معرف الأنمي الحالي ==========
+let currentMalId = 1;

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">تفاصيل الأنمي - AnimeAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/enhancements.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#8a2be2">
+</head>
+<body>
+    <div class="particles-container" id="particles-container"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo" onclick="window.location.href='/'">
+                <i class="fas fa-play-circle"></i>
+                <span class="shimmer">AnimeAI</span>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="#" class="nav-link"><i class="fas fa-fire"></i> الشائعة</a>
+            </div>
+            <button id="theme-toggle" class="icon-btn"><i class="fas fa-moon"></i></button>
+        </div>
+    </nav>
+
+    <main class="anime-detail-container">
+        <div class="anime-hero" id="anime-hero">
+            <div class="anime-hero-bg" id="anime-hero-bg"></div>
+            <div class="anime-hero-content">
+                <div class="anime-poster" id="anime-poster-container">
+                    <img id="anime-poster" src="" alt="">
+                </div>
+                <div class="anime-info-detailed">
+                    <h1 id="anime-title-detailed" class="shimmer"></h1>
+                    <h3 id="anime-title-english"></h3>
+                    <div class="anime-meta">
+                        <span class="meta-item"><i class="fas fa-star"></i> <span id="anime-score"></span></span>
+                        <span class="meta-item"><i class="fas fa-tv"></i> <span id="anime-type"></span></span>
+                        <span class="meta-item"><i class="fas fa-list-ol"></i> <span id="anime-episodes"></span> حلقة</span>
+                        <span class="meta-item"><i class="fas fa-clock"></i> <span id="anime-duration"></span></span>
+                        <span class="meta-item"><i class="fas fa-calendar"></i> <span id="anime-aired"></span></span>
+                    </div>
+                    <div class="anime-genres" id="anime-genres"></div>
+                    <p class="anime-synopsis" id="anime-synopsis"></p>
+                    <div class="anime-actions">
+                        <button class="btn-primary" id="watch-first-episode"><i class="fas fa-play"></i> شاهد الحلقة الأولى</button>
+                        <button class="btn-secondary" id="add-to-favorites"><i class="fas fa-heart"></i> أضف للمفضلة</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="episodes-section">
+            <h2 class="section-title">جميع الحلقات</h2>
+            <div class="episodes-filter">
+                <input type="text" id="episode-search" placeholder="ابحث عن رقم الحلقة...">
+                <select id="episode-sort">
+                    <option value="asc">من الأقدم للأحدث</option>
+                    <option value="desc">من الأحدث للأقدم</option>
+                </select>
+            </div>
+            <div class="episodes-grid" id="episodes-grid">
+                <div class="loading-spinner"><div class="spinner"></div><p>جاري تحميل الحلقات...</p></div>
+            </div>
+        </section>
+    </main>
+
+    <div class="video-overlay" id="video-overlay">
+        <div class="video-modal">
+            <div class="video-modal-header">
+                <h3 id="video-title"></h3>
+                <div class="modal-actions">
+                    <button id="pip-btn" class="icon-btn"><i class="fas fa-window-restore"></i></button>
+                    <button class="close-video icon-btn" id="close-video"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="video-modal-body">
+                <div class="server-tabs" id="server-tabs"></div>
+                <div class="custom-url-input" id="custom-url-input" style="display:none;">
+                    <input type="text" id="custom-video-url" placeholder="الصق رابط الفيديو المباشر...">
+                    <button id="load-custom-url">تحميل</button>
+                </div>
+                <div class="video-wrapper">
+                    <video id="plyr-video-main" playsinline controls style="display:none;"></video>
+                    <iframe id="video-frame" src="" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="/static/anime.js"></script>
+    <script src="/static/analytics.js"></script>
+    <script src="/static/security.js"></script>
+    <script src="/static/performance.js"></script>
+</body>
+</html>

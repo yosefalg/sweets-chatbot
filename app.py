@@ -1,276 +1,83 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, redirect
 import requests
 from datetime import datetime
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, static_url_path='/static', static_folder=os.path.join(BASE_DIR, 'static'))
 
-# ========== الصفحة الكاملة (واجهة مستخدم مدمجة) ==========
-HTML = """
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AnimeAI - منصة الأنمي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        :root {
-            --primary: #8a2be2;
-            --accent: #ff69b4;
-            --bg: #0a0a1a;
-            --card: #1e1e3a;
-            --text: #ffffff;
-            --border: #2a2a4a;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-        .navbar {
-            position: sticky; top: 0; z-index: 1000;
-            background: rgba(10,10,26,0.95); backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border); padding: 10px 20px;
-            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-        }
-        .nav-logo {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 1.5rem; font-weight: 900; cursor: pointer;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .nav-links { display: flex; gap: 5px; }
-        .nav-link {
-            color: #a0a0c0; text-decoration: none; padding: 8px 15px;
-            border-radius: 20px; font-size: 0.9rem; transition: all 0.3s;
-            display: flex; align-items: center; gap: 5px;
-        }
-        .nav-link:hover, .nav-link.active { background: var(--card); color: var(--primary); }
-        .search-box { display: flex; align-items: center; }
-        .search-box input {
-            padding: 10px 15px; border: 2px solid var(--border); border-radius: 25px 0 0 25px;
-            outline: none; background: var(--card); color: var(--text); font-family: 'Tajawal', sans-serif; width: 250px;
-        }
-        .search-box button {
-            padding: 10px 20px; background: var(--primary); border: none;
-            border-radius: 0 25px 25px 0; color: white; cursor: pointer;
-        }
-        .main-content { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
-        .tabs-container { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
-        .tab-btn {
-            padding: 12px 25px; background: var(--card); border: 1px solid var(--border);
-            color: #a0a0c0; border-radius: 25px; cursor: pointer; transition: all 0.3s;
-            font-family: 'Tajawal', sans-serif; font-weight: 500; display: flex; align-items: center; gap: 8px;
-        }
-        .tab-btn.active { background: var(--primary); color: white; border-color: transparent; }
-        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-        .anime-card {
-            background: var(--card); border-radius: 12px; overflow: hidden;
-            transition: transform 0.3s; cursor: pointer; border: 1px solid var(--border);
-        }
-        .anime-card:hover { transform: scale(1.03); }
-        .anime-card img { width: 100%; height: 250px; object-fit: cover; }
-        .anime-card .info { padding: 15px; }
-        .anime-card h3 { font-size: 1rem; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .anime-card .meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: #a0a0c0; }
-        .anime-card .score { color: #ffd700; font-weight: 700; }
-        .anime-card button {
-            background: var(--accent); border: none; padding: 8px 15px; border-radius: 20px;
-            color: white; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold;
-        }
-        .player-section { margin-top: 30px; background: #12122a; padding: 20px; border-radius: 12px; display: none; }
-        .player-section h2 { margin-bottom: 10px; color: var(--accent); }
-        .server-selector { margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .server-selector select, .server-selector input {
-            padding: 8px; border-radius: 8px; border: 1px solid var(--border);
-            background: #1a1a2e; color: white; font-family: 'Tajawal', sans-serif;
-        }
-        .server-selector button {
-            padding: 8px 20px; background: var(--primary); border: none; border-radius: 8px; color: white; cursor: pointer;
-        }
-        .video-container { width: 100%; aspect-ratio: 16/9; }
-        .video-container iframe { width: 100%; height: 100%; border-radius: 12px; }
-        .loading-spinner { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; padding: 50px; }
-        .spinner { width: 50px; height: 50px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-logo" onclick="window.location.href='/'">
-            <i class="fas fa-play-circle"></i> AnimeAI
-        </div>
-        <div class="nav-links">
-            <a href="/" class="nav-link active"><i class="fas fa-home"></i> الرئيسية</a>
-            <a href="#" class="nav-link" id="tab-popular"><i class="fas fa-fire"></i> الشائعة</a>
-            <a href="#" class="nav-link" id="tab-top"><i class="fas fa-star"></i> الأعلى تقييماً</a>
-            <a href="#" class="nav-link" id="tab-airing"><i class="fas fa-tv"></i> قيد العرض</a>
-        </div>
-        <div class="search-box">
-            <input type="text" id="search-input" placeholder="ابحث عن أنمي...">
-            <button id="search-btn"><i class="fas fa-search"></i></button>
-        </div>
-    </nav>
+JIKAN_BASE_URL = "https://api.jikan.moe/v4"
 
-    <main class="main-content">
-        <div class="tabs-container">
-            <button class="tab-btn active" data-tab="popular"><i class="fas fa-fire"></i> الأكثر شعبية</button>
-            <button class="tab-btn" data-tab="top"><i class="fas fa-star"></i> الأعلى تقييماً</button>
-            <button class="tab-btn" data-tab="airing"><i class="fas fa-tv"></i> قيد العرض</button>
-            <button class="tab-btn" data-tab="upcoming"><i class="fas fa-clock"></i> قريباً</button>
-        </div>
-        <div class="anime-grid" id="anime-grid">
-            <div class="loading-spinner"><div class="spinner"></div><p>جاري التحميل...</p></div>
-        </div>
-        <div style="text-align:center; margin: 30px 0;">
-            <button id="load-more-btn" style="padding:12px 30px; background:var(--card); border:1px solid var(--border); color:white; border-radius:25px; cursor:pointer;">عرض المزيد</button>
-        </div>
-        <div class="player-section" id="player-section">
-            <h2 id="player-title"></h2>
-            <div class="server-selector">
-                <label>اختر السيرفر:</label>
-                <select id="server-select">
-                    <option value="2embed">2embed</option>
-                    <option value="vidlink">VidLink</option>
-                    <option value="vidsrc">VidSrc</option>
-                    <option value="custom">رابط مخصص</option>
-                </select>
-                <input type="text" id="custom-url" placeholder="الصق رابط الفيديو المباشر" style="display:none;">
-                <button id="load-video">تشغيل</button>
-            </div>
-            <div class="video-container"><iframe id="video-frame" src="" allowfullscreen></iframe></div>
-        </div>
-    </main>
-
-    <script>
-        // ========== متغيرات ==========
-        let currentTab = 'popular';
-        let currentPage = 1;
-        let currentMalId = null;
-
-        const animeGrid = document.getElementById('anime-grid');
-        const searchInput = document.getElementById('search-input');
-        const searchBtn = document.getElementById('search-btn');
-        const playerSection = document.getElementById('player-section');
-        const videoFrame = document.getElementById('video-frame');
-        const loadMoreBtn = document.getElementById('load-more-btn');
-
-        // ========== تحميل الأنميات ==========
-        async function fetchAnime(type, page = 1) {
-            const endpoints = {
-                popular: `https://api.jikan.moe/v4/top/anime?page=${page}&limit=20`,
-                top: `https://api.jikan.moe/v4/top/anime?page=${page}&limit=20&filter=bypopularity`,
-                airing: `https://api.jikan.moe/v4/seasons/now?page=${page}&limit=20`,
-                upcoming: `https://api.jikan.moe/v4/seasons/upcoming?page=${page}&limit=20`
-            };
-            const resp = await fetch(endpoints[type] || endpoints.popular);
-            const data = await resp.json();
-            return data.data || [];
-        }
-
-        function renderCards(animeList) {
-            animeGrid.innerHTML = '';
-            if (!animeList.length) {
-                animeGrid.innerHTML = '<p style="grid-column:1/-1;text-align:center;">لا توجد نتائج</p>';
-                return;
-            }
-            animeList.forEach(anime => {
-                const card = document.createElement('div');
-                card.className = 'anime-card';
-                card.innerHTML = `
-                    <img src="${anime.images.jpg.image_url}" alt="${anime.title}" onerror="this.src='https://via.placeholder.com/300x400/1e1e3a/8a2be2?text=No+Image'">
-                    <div class="info">
-                        <h3>${anime.title}</h3>
-                        <div class="meta">
-                            <span>${anime.type || 'TV'}</span>
-                            <span class="score">⭐ ${anime.score || '?'}</span>
-                        </div>
-                        <button onclick="event.stopPropagation(); openPlayer(${anime.mal_id}, '${anime.title.replace(/'/g, "\\'")}')">▶ شاهد</button>
-                    </div>`;
-                card.onclick = () => window.location.href = `/anime?id=${anime.mal_id}`;
-                animeGrid.appendChild(card);
-            });
-        }
-
-        async function loadTab(tab, page = 1) {
-            animeGrid.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>جاري التحميل...</p></div>';
-            const list = await fetchAnime(tab, page);
-            renderCards(list);
-        }
-
-        // ========== أحداث التبويب ==========
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentTab = this.dataset.tab;
-                currentPage = 1;
-                loadTab(currentTab, currentPage);
-            });
-        });
-
-        loadMoreBtn.addEventListener('click', () => {
-            currentPage++;
-            loadTab(currentTab, currentPage);
-        });
-
-        // ========== البحث ==========
-        async function searchAnime(query) {
-            if (!query.trim()) return;
-            const resp = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-            const data = await resp.json();
-            renderCards(data.results);
-        }
-
-        searchBtn.addEventListener('click', () => searchAnime(searchInput.value));
-        searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchAnime(searchInput.value); });
-
-        // ========== مشغل الفيديو ==========
-        function openPlayer(malId, title) {
-            currentMalId = malId;
-            playerSection.style.display = 'block';
-            document.getElementById('player-title').textContent = title;
-            loadVideo('2embed', 1);
-        }
-
-        function loadVideo(server, episode = 1) {
-            const urls = {
-                '2embed': `https://www.2embed.skin/embed/anime/mal/${currentMalId}/${episode}`,
-                'vidlink': `https://vidlink.pro/anime/${currentMalId}/${episode}/sub`,
-                'vidsrc': `https://vidsrc.xyz/embed/anime?mal_id=${currentMalId}&episode=${episode}`
-            };
-            const custom = document.getElementById('custom-url').value;
-            videoFrame.src = server === 'custom' && custom ? custom : urls[server] || urls['2embed'];
-        }
-
-        document.getElementById('load-video').addEventListener('click', () => {
-            loadVideo(document.getElementById('server-select').value);
-        });
-
-        document.getElementById('server-select').addEventListener('change', function() {
-            document.getElementById('custom-url').style.display = this.value === 'custom' ? 'inline-block' : 'none';
-        });
-
-        // ========== تحميل أولي ==========
-        loadTab('popular', 1);
-    </script>
-</body>
-</html>
-"""
+STREAM_SERVERS = {
+    "2embed": "https://www.2embed.skin/embed/anime/mal/{mal_id}/{episode}",
+    "vidlink": "https://vidlink.pro/anime/{mal_id}/{episode}/sub",
+    "vidsrc": "https://vidsrc.xyz/embed/anime?mal_id={mal_id}&episode={episode}",
+    "vidcdn": "https://vidcdn.xyz/embed/{mal_id}/{episode}",
+    "animeapi": "https://anime-api.xyz/watch/{mal_id}/{episode}"
+}
 
 @app.route('/')
 def index():
-    return HTML
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'index.html')
 
-# ========== API ==========
-JIKAN_BASE_URL = "https://api.jikan.moe/v4"
+@app.route('/anime')
+def anime_page():
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'anime.html')
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'robots.txt')
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'sitemap.xml')
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'manifest.json')
+
+@app.route('/service-worker.js')
+def service_worker():
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'service-worker.js')
+
+@app.route('/api/analytics', methods=['POST'])
+def analytics():
+    data = request.get_json()
+    print(f"[Analytics] {data.get('event')}: {data.get('data')}")
+    return jsonify({"status": "ok"})
+
+@app.route('/api/servers')
+def get_servers():
+    return jsonify({
+        "servers": [
+            {"id": "2embed", "name": "2embed", "icon": "fa-play"},
+            {"id": "vidlink", "name": "VidLink", "icon": "fa-link"},
+            {"id": "vidsrc", "name": "VidSrc", "icon": "fa-video"},
+            {"id": "vidcdn", "name": "VidCDN", "icon": "fa-cloud"},
+            {"id": "animeapi", "name": "AnimeAPI", "icon": "fa-server"},
+            {"id": "custom", "name": "رابط مخصص", "icon": "fa-upload"}
+        ]
+    })
+
+@app.route('/api/stream')
+def stream_episode():
+    mal_id = request.args.get('mal_id', '1')
+    episode = request.args.get('episode', '1')
+    server = request.args.get('server', '2embed')
+    if server in STREAM_SERVERS:
+        embed_url = STREAM_SERVERS[server].format(mal_id=mal_id, episode=episode)
+        return redirect(embed_url, code=302)
+    return jsonify({"error": "سيرفر غير معروف"}), 400
 
 @app.route('/api/search')
 def search_anime():
     q = request.args.get('q', '')
+    page = request.args.get('page', '1')
     if not q:
         return jsonify({"results": []})
     try:
-        resp = requests.get(f"{JIKAN_BASE_URL}/anime", params={"q": q, "limit": 10}, timeout=10)
+        params = {"q": q, "page": page, "limit": 20}
+        resp = requests.get(f"{JIKAN_BASE_URL}/anime", params=params, timeout=10)
         resp.raise_for_status()
         data = resp.json()
         results = []
@@ -278,15 +85,88 @@ def search_anime():
             results.append({
                 "mal_id": anime['mal_id'],
                 "title": anime['title'],
-                "image": anime['images']['jpg']['image_url'],
+                "title_english": anime.get('title_english', ''),
+                "image": anime['images']['jpg']['large_image_url'] or anime['images']['jpg']['image_url'],
                 "synopsis": anime.get('synopsis', ''),
+                "score": anime.get('score'),
+                "episodes": anime.get('episodes'),
+                "type": anime.get('type'),
+                "status": anime.get('status'),
+                "genres": [g['name'] for g in anime.get('genres', [])]
+            })
+        return jsonify({"results": results, "total": data.get('pagination', {}).get('items', {}).get('total', 0)})
+    except Exception as e:
+        return jsonify({"results": [], "error": str(e)}), 500
+
+@app.route('/api/top')
+def top_anime():
+    page = request.args.get('page', '1')
+    filter_type = request.args.get('filter', 'bypopularity')
+    try:
+        resp = requests.get(f"{JIKAN_BASE_URL}/top/anime", params={"page": page, "limit": 20, "filter": filter_type}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        results = []
+        for anime in data.get('data', []):
+            results.append({
+                "mal_id": anime['mal_id'],
+                "title": anime['title'],
+                "image": anime['images']['jpg']['large_image_url'] or anime['images']['jpg']['image_url'],
+                "score": anime.get('score'),
+                "episodes": anime.get('episodes'),
+                "type": anime.get('type'),
+                "genres": [g['name'] for g in anime.get('genres', [])]
+            })
+        return jsonify({"results": results})
+    except Exception as e:
+        return jsonify({"results": []}), 500
+
+@app.route('/api/anime/<int:anime_id>')
+def anime_details(anime_id):
+    try:
+        resp = requests.get(f"{JIKAN_BASE_URL}/anime/{anime_id}/full", timeout=10)
+        resp.raise_for_status()
+        anime = resp.json()['data']
+        return jsonify({
+            "mal_id": anime['mal_id'],
+            "title": anime['title'],
+            "title_english": anime.get('title_english', ''),
+            "image": anime['images']['jpg']['large_image_url'] or anime['images']['jpg']['image_url'],
+            "synopsis": anime.get('synopsis', ''),
+            "score": anime.get('score'),
+            "episodes": anime.get('episodes'),
+            "type": anime.get('type'),
+            "status": anime.get('status'),
+            "aired": anime.get('aired', {}).get('string', ''),
+            "genres": [g['name'] for g in anime.get('genres', [])]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/season')
+def current_season():
+    year = request.args.get('year', datetime.now().year)
+    season = request.args.get('season', '')
+    if not season:
+        month = datetime.now().month
+        season = 'winter' if month in [12, 1, 2] else 'spring' if month in [3, 4, 5] else 'summer' if month in [6, 7, 8] else 'fall'
+    try:
+        resp = requests.get(f"{JIKAN_BASE_URL}/seasons/{year}/{season}", params={"limit": 20}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        results = []
+        for anime in data.get('data', []):
+            results.append({
+                "mal_id": anime['mal_id'],
+                "title": anime['title'],
+                "image": anime['images']['jpg']['large_image_url'] or anime['images']['jpg']['image_url'],
                 "score": anime.get('score'),
                 "episodes": anime.get('episodes'),
                 "type": anime.get('type')
             })
         return jsonify({"results": results})
     except Exception as e:
-        return jsonify({"results": [], "error": str(e)}), 500
+        return jsonify({"results": []}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
